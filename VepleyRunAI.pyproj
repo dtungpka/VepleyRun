@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>b0013bfb-ae20-4b19-b475-a76a9936e761</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>VepleyAI_train.py</StartupFile>
+    <StartupFile>VepleyAI_acquire.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -27,6 +27,9 @@
     <Compile Include="VepleyAI_train.py" />
     <Compile Include="VepleyRunAI.py" />
     <Compile Include="widget.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="desc.json" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

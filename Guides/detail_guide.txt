@@ -1,0 +1,5 @@
+Training data for [pose] pose:
+Try to include both hand in frame,
+make pose similar to Idle.jpg in guides folder (after a few sample, change to [pose] - variant x.jpg)
+
+

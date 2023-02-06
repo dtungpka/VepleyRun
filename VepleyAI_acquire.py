@@ -11,16 +11,18 @@ import shutil
 from console_progressbar import ProgressBar
 import threading
 Path = input("Enter Dataset name: ")
-
+guide_path = './Guides/'
 Actions = ['Idle',
            'Pickup_item',
            'Use_item',
            'Aim',
            'Shoot'
            ]
-NUMBER_OF_SAMPLES = 200
+
+NUMBER_OF_SAMPLES = 400
 CHANGE_POSE_EVERY = 0.2
-CAPTURE_RATE = 2 # capture every n frame
+PAUSE_TIME = 2.0
+CAPTURE_RATE = 1 # capture every n frame
 lock = threading.Lock()
 HEIGHT = 480
 WIDTH = 640
@@ -80,7 +82,7 @@ class handDetector():
     thr_running = True
     waitID = -1
 def checkpoint():
-    global remaining_time
+    global remaining_time, PAUSE_TIME
     while handDetector.thr_running:
         time.sleep(0.1)
         
@@ -88,7 +90,7 @@ def checkpoint():
             continue
         if handDetector.ID % NUMBER_OF_SAMPLES == 0 and not handDetector.capturing:
             input('\rReady your pose and press ENTER to continue')
-            remaining_time = 1.0
+            remaining_time = PAUSE_TIME
             while remaining_time > 0:
                 print(f"\rContinue in {round(remaining_time,2)}",end='')
                 time.sleep(0.1)
@@ -100,7 +102,7 @@ def checkpoint():
             handDetector.capturing = False
             #input('\rPlease change your pose for better data and press ENTER to continue')
            
-            remaining_time = 1.0
+            remaining_time = PAUSE_TIME
             while remaining_time > 0:
                 print(f"\rContinue in {round(remaining_time,2)}",end='')
                 time.sleep(0.1)
@@ -128,7 +130,10 @@ def main():
     fr_count = 0
     cap_thread = threading.Thread(target=checkpoint)
     cap_thread.start()
-
+    d_guide = ''
+    with open(guide_path + 'detail_guide.txt', 'r') as f:
+        d_guide = f.read()
+    print(d_guide.replace('[pose]',Actions[current_action]))
     pb = ProgressBar(total=NUMBER_OF_SAMPLES, suffix=Actions[current_action], decimals=3, length=50, fill='=', zfill=' ')
     global remaining_time
     while current_action < len(Actions):
@@ -164,7 +169,7 @@ def main():
                 return
             current_action += 1
             print(f"Sampling {Actions[current_action]}\n")
-            
+            print(d_guide.replace('[pose]',Actions[current_action]))
             pb = ProgressBar(total=NUMBER_OF_SAMPLES, suffix=Actions[current_action], decimals=3, length=50, fill='=', zfill=' ')
         lock.release()
             
@@ -189,9 +194,13 @@ def main():
         cv2.imshow("Frame", img_drawed)
         if handDetector.capturing:
             cv2.imwrite(os.path.join(Path, Actions[current_action], f"{handDetector.ID}.jpg"), img)
+            cv2.imwrite(os.path.join(Path, Actions[current_action], f"{handDetector.ID}_drawed.jpg"), img_drawed)
         cv2.waitKey(1)
         
 if __name__ == "__main__":
+    with open(guide_path+'guide.txt','r') as f:
+        print(f.read())
+        input('\nEnter to continue..')
     main()
     handDetector.thr_running = False
     #get the len of all file in folder with same name as Actions[current_action]
