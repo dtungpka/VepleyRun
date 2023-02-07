@@ -1,4 +1,4 @@
-﻿import numpy as np
+import numpy as np
 import matplotlib.pyplot as plt
 
 def initialize_parameters(n_x, n_h, n_y):
@@ -100,14 +100,14 @@ def linear_activation_forward(A_prev, W, b, activation):
     
     if activation == "sigmoid":
         # Inputs: "A_prev, W, b". Outputs: "A, activation_cache".
-          # (≈ 2 lines of code)
+          # ( 2 lines of code)
         Z, linear_cache = linear_forward(A_prev, W, b) # This "linear_cache" contains (A_prev, W, b)
         A, activation_cache = sigmoid(Z) # This "activation_cache" contains "Z"
          
     
     elif activation == "relu":
         # Inputs: "A_prev, W, b". Outputs: "A, activation_cache".
-          # (≈ 2 lines of code)
+          # ( 2 lines of code)
         Z, linear_cache = linear_forward(A_prev, W, b) # This "linear_cache" contains (A_prev, W, b)
         A, activation_cache = relu(Z) # This "activation_cache" contains "Z"
          
@@ -166,7 +166,7 @@ def compute_cost(AL, Y):
     m = Y.shape[1]
 
     # Compute loss from aL and y.
-      # (≈ 1 lines of code)
+      # ( 1 lines of code)
     cost = (-1/m) * (np.dot(Y, np.log(AL).T) + np.dot((1-Y), np.log(1-AL).T))
      
     
@@ -191,7 +191,7 @@ def linear_backward(dZ, cache):
     A_prev, W, b = cache
     m = A_prev.shape[1]
 
-      # (≈ 3 lines of code)
+      # ( 3 lines of code)
     dW = (1/m) * np.dot(dZ, A_prev.T)
     db = (1/m) * np.sum(dZ, axis=1, keepdims=True)
     dA_prev = np.dot(W.T,dZ)
@@ -216,7 +216,7 @@ def sigmoid_backward(dA, cache):
     
     Z = cache
     
-      # (≈ 2 lines of code)
+      # ( 2 lines of code)
     s = 1/(1+np.exp(-Z))
     dZ = dA * s * (1-s)
      
@@ -264,16 +264,16 @@ def linear_activation_backward(dA, cache, activation):
     linear_cache, activation_cache = cache
     
     if activation == "relu":
-          # (≈ 1 line of code)
+          # ( 1 line of code)
         dZ = relu_backward(dA, activation_cache)
          
         
     elif activation == "sigmoid":
-          # (≈ 1 line of code)
+          # ( 1 line of code)
         dZ = sigmoid_backward(dA, activation_cache)
          
     
-      # (≈ 1 line of code)
+      # ( 1 line of code)
     dA_prev, dW, db = linear_backward(dZ, linear_cache)
      
     
