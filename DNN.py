@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy
 
 def initialize_parameters(n_x, n_h, n_y):
     """
@@ -77,9 +78,9 @@ def linear_forward(A, W, b):
     return Z, cache
 
 def relu(X):
-  return np.maximum(0,X)
+  return np.maximum(0,X),X
 def sigmoid(X):
-    return 1/(1+np.exp(-X))
+    return 1/(1+np.exp(-X)),X
 
     
 def linear_activation_forward(A_prev, W, b, activation):
@@ -148,7 +149,7 @@ def L_model_forward(X, parameters):
     caches.append(cache)
 
     
-    assert(AL.shape == (1,X.shape[1]))
+    assert(AL.shape == (5,X.shape[1]))
             
     return AL, caches
 def compute_cost(AL, Y):
@@ -341,4 +342,20 @@ def update_parameters(parameters, grads, learning_rate):
     for l in range(L):
         parameters["W" + str(l+1)] = parameters["W" + str(l+1)] - learning_rate * grads["dW" + str(l+1)]
         parameters["b" + str(l+1)] = parameters["b" + str(l+1)] - learning_rate * grads["db" + str(l+1)]
+        print(parameters["W" + str(l+1)].shape)
     return parameters
+
+#train with X = (1000, 20)
+#20 hidden layer
+# Y = (1000,5)
+
+if __name__ == "__main__":
+    X = np.random.randn(1000,20).T
+    Y = np.random.randn(1000,5).T
+    parameters = initialize_parameters_deep([20,20,5])
+    for i in range(1000):
+        AL, caches = L_model_forward(X, parameters)
+        grads = L_model_backward(AL, Y, caches)
+        parameters = update_parameters(parameters, grads, 0.1)
+
+    #print("Accuracy: "  + str(predict(X, Y, parameters)))

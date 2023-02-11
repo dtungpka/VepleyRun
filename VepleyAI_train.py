@@ -9,7 +9,7 @@ import os
 import time
 import pickle
 import sys
-import DNN
+from DNN import NeuralNetwork
 
 TRAIN_TEST_RATIO = 0.8
 #H: 480
@@ -134,7 +134,12 @@ class VepleyAiTrain():
         print("X_test shape: ",self.X_test.shape)
         print("Y_test shape: ",self.Y_test.shape)
     def train(self):
-        parameter = DNN.initialize_parameters(3,2,1)
+        self.num_feature = self.X.shape[1]
+        self.num_class = len(Actions)
+        self.model =  NeuralNetwork(num_features=self.num_feature, num_classes=self.num_class)
+        self.model.fit(self.X,self.Y)
+        
+        
         
         
 #check for paramater, if --tune then run class
