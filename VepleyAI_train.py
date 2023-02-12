@@ -4,12 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 import cv2
-import mediapipe
+import random
 import os
 import time
 import pickle
 import sys
-from DNN import NeuralNetwork
+import DNN
 
 TRAIN_TEST_RATIO = 0.8
 #H: 480
@@ -28,7 +28,7 @@ Actions = ['Idle',
            ]
 IGNORE_RIGHT_HAND = False
 FLIP_RIGHT_HAND = True
-
+LEARNING_RATE = 0.0001
 #train the neural net with 256 
 LAYERS = [1, 256, 256, 256, len(Actions)]
 
@@ -124,20 +124,60 @@ class VepleyAiTrain():
     def _split_data(self):
         global TRAIN_TEST_RATIO,NO_OF_SAMPLES
         train_size = int(NO_OF_SAMPLES*TRAIN_TEST_RATIO)
-        self.X = self.data['X'][:train_size,:]
-        self.Y = self.data['Y'][:train_size]
-        self.X_test = self.data['X'][train_size:,:]
-        self.Y_test = self.data['Y'][train_size:]
+        self.X = self.data['X'][:train_size,:].T
+        self.Y = self.data['Y'][:train_size].T
+        #from Y (800,) to (800,5)
+        self.Y = np.eye(len(Actions))[self.Y.astype(int)].T
+
+        self.X_test = self.data['X'][train_size:,:].T
+        self.Y_test = self.data['Y'][train_size:].T
         #print all the shape
         print("X shape: ",self.X.shape)
         print("Y shape: ",self.Y.shape)
         print("X_test shape: ",self.X_test.shape)
         print("Y_test shape: ",self.Y_test.shape)
     def train(self):
-        self.num_feature = self.X.shape[1]
+        self.num_feature = self.X.shape[0]
         self.num_class = len(Actions)
-        self.model =  NeuralNetwork(num_features=self.num_feature, num_classes=self.num_class)
-        self.model.fit(self.X,self.Y)
+        self.parameters = DNN.initialize_parameters_deep([self.num_feature, self.num_feature,  self.num_class])
+        _parameters = self.parameters
+        history = []
+        cost = 100
+        for i in range(0, 90000):
+            AL, caches = DNN.L_model_forward(self.X, _parameters)
+            grads = DNN.L_model_backward(AL, self.Y, caches)
+            _cost = np.sum(DNN.compute_cost(AL, self.Y))
+            _parameters = DNN.update_parameters(_parameters, grads, learning_rate = LEARNING_RATE)
+            if (_cost < cost ):
+                self.parameters = _parameters
+                cost = _cost
+            history.append(np.sum(_cost))
+            if i % 100 == 0:
+                print ("\rCost after iteration %i: " %(i),np.sum(cost),end='')
+       
+        plt.plot(history)
+        plt.ylabel('cost')
+        plt.xlabel('iterations (per hundreds)')
+        plt.title("Learning rate =" + str(LEARNING_RATE))
+        plt.show()
+        self.predict_random()
+        self.save_parameters()
+    def predict_random(self):
+        if self.X_test is None:
+            print("No data to predict")
+            return
+        for i in range(0,10):
+            index = random.randint(0,self.X_test.shape[1])
+            print("Predicted: ",Actions[DNN.predict(self.X_test[:,index],self.parameters)])
+            print("Actual: ",Actions[self.Y_test[:,index].argmax()])
+    def save_parameters(self):
+        if input("Save parameters? (y/n)").lower() != "y":
+            return
+        global processed_folder
+        if not os.path.exists(processed_folder):
+            os.mkdir(processed_folder)
+        pickle.dump(self.parameters,open(processed_folder+dataFiles+"_parameters.pickle","wb"))
+        print("Parameters saved to "+processed_folder+dataFiles+"_parameters.pickle")
         
         
         

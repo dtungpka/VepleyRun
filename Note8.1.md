@@ -57,3 +57,13 @@ Lưu lại số liệu, tham số.
 
 Lịch họp sáng thứ 7 hàng tuần: 9h
 
+
+### 12/2
+Đọc các bài báo về các model, xem cải tiến , kết hợp
+
+Thử thay đổi góc của joint: sử dụng chung 1 tọa độ joint 0
+
+Tìm các bài báo: đề xuất đặc trưng của tình trạng bàn tay (hand posture), skeleton, feature extraction, hand posture classifition/recognition
+
+
+

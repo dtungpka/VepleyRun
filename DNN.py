@@ -133,7 +133,7 @@ def L_model_forward(X, parameters):
 
     caches = []
     A = X
-    L = len(parameters) // 2                  # number of layers in the neural network
+    L = len(parameters) // 2   # number of layers in the neural network
     
     # Implement [LINEAR -> RELU]*(L-1). Add "cache" to the "caches" list.
     for l in range(1, L):
@@ -172,7 +172,6 @@ def compute_cost(AL, Y):
      
     
     cost = np.squeeze(cost)      # To make sure your cost's shape is what we expect (e.g. this turns [[17]] into 17).
-    assert(cost.shape == ())
     
     return cost
 def linear_backward(dZ, cache):
@@ -342,8 +341,34 @@ def update_parameters(parameters, grads, learning_rate):
     for l in range(L):
         parameters["W" + str(l+1)] = parameters["W" + str(l+1)] - learning_rate * grads["dW" + str(l+1)]
         parameters["b" + str(l+1)] = parameters["b" + str(l+1)] - learning_rate * grads["db" + str(l+1)]
-        print(parameters["W" + str(l+1)].shape)
     return parameters
+def predict(X, y, parameters):
+    """
+    This function is used to predict the results of a  L-layer neural network.
+        
+    Arguments:
+    X -- data set of examples you would like to label
+    parameters -- parameters of the trained model
+        
+    Returns:
+    p -- predictions for the given dataset X
+    """
+        
+    m = X.shape[1]
+    n = len(parameters) // 2
+    p = np.zeros((1,m))
+            
+    # Forward propagation
+    probas, caches = L_model_forward(X, parameters)
+            
+    # convert probas to 0/1 predictions
+    for i in range(0, probas.shape[1]):
+        if probas[0,i] > 0.5:
+            p[0,i] = 1
+        else:
+            p[0,i] = 0
+                
+    print("Accuracy: "  + str(np.sum((p == y)/m)))
 
 #train with X = (1000, 20)
 #20 hidden layer
