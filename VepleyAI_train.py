@@ -10,7 +10,7 @@ import time
 import pickle
 import sys
 import DNN
-
+from VepleyAI_acquire import Actions
 TRAIN_TEST_RATIO = 0.8
 #H: 480
 #W: 640
@@ -20,12 +20,6 @@ dataFiles = "Datasets"
 processed_folder = "./Processed/"
 Excluded = []
 parent_folder = True
-Actions = ['Idle',
-           'Pickup_item',
-           'Use_item',
-           'Aim',
-           'Shoot'
-           ]
 IGNORE_RIGHT_HAND = False
 FLIP_RIGHT_HAND = True
 LEARNING_RATE = 0.0001
@@ -102,11 +96,11 @@ class VepleyAiTrain():
                                 landmarks[k][0] = W - landmarks[k][0]
                         for i,(_p1,_p2) in enumerate(PARSE_LANDMARKS_JOINTS):
                             if _p1 in landmarks and _p2 in landmarks:
-                                self.data['X'][i][int(ID)] = self._calculate_angle(landmarks[_p1],landmarks[_p2])
+                                self.data['X'][i][int(ID)] = self.calculate_angle(landmarks[_p1],landmarks[_p2])
                             else:
                                 self.data['X'][i][int(ID)] = 0
-            print("\rProcessed "+action,f'{j+1} out of {len(Actions)} ',end='\n')                         
-    def _calculate_angle(self,landmark1, landmark2):
+            print("\rProcessed "+action,f'{j+1} out of {len(Actions)} ',end='\n')     
+    def calculate_angle(self,landmark1, landmark2):
         return np.math.atan2(np.linalg.det([landmark1, landmark2]), np.dot(landmark1, landmark2))
     def load(self):
         if self.data == None:
@@ -177,12 +171,11 @@ class VepleyAiTrain():
         if not os.path.exists(processed_folder):
             os.mkdir(processed_folder)
         pickle.dump(self.parameters,open(processed_folder+dataFiles+"_parameters.pickle","wb"))
-        print("Parameters saved to "+processed_folder+dataFiles+"_parameters.pickle")
+        print("Parameters saved to "+processed_folder+dataFiles+"_parameters.bin")
         
         
         
         
-#check for paramater, if --tune then run class
 if __name__ == "__main__":
     instance = VepleyAiTrain()
     s = "--single" in sys.argv or "-s" in sys.argv
