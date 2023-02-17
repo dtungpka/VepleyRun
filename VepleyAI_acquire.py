@@ -10,7 +10,7 @@ import json
 import shutil
 from console_progressbar import ProgressBar
 import threading
-Path = input("Enter Dataset name: ")
+
 guide_path = './Guides/'
 Actions = ['Idle',
            'Pickup_item',
@@ -23,13 +23,12 @@ NUMBER_OF_SAMPLES = 400
 CHANGE_POSE_EVERY = 0.2
 PAUSE_TIME = 2.0
 CAPTURE_RATE = 1 # capture every n frame
-lock = threading.Lock()
+Path = ""
+lock = None
 HEIGHT = 480
 WIDTH = 640
 remaining_time = 0
-for action in Actions:
-    if not os.path.exists(os.path.join(Path, action)):
-        os.makedirs(os.path.join(Path, action))
+
 
 class handDetector():
     def __init__(self, mode=False, maxHands=2, detectionCon=0.5, trackCon=0.5):
@@ -196,6 +195,11 @@ def main():
         cv2.waitKey(1)
         
 if __name__ == "__main__":
+    lock = threading.Lock()
+    Path = input("Enter Dataset name: ")
+    for action in Actions:
+        if not os.path.exists(os.path.join(Path, action)):
+            os.makedirs(os.path.join(Path, action))
     with open(guide_path+'guide.txt','r') as f:
         print(f.read())
         input('\nEnter to continue..')

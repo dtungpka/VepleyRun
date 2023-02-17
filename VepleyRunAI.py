@@ -8,11 +8,24 @@ import numpy as np
 import cv2
 import mediapipe as mp
 import threading
+import random
 from VepleyAI_train import PARSE_LANDMARKS_JOINTS,Actions,VepleyAiTrain
 from VepleyAI_acquire import WIDTH,HEIGHT,handDetector
 calculate_angle = VepleyAiTrain.calculate_angle
 UDP_IP  = "127.0.0.1"
 UDP_PORT = 3939
+'''
+In the message dict:
+
+action: 0 for no action, 1 for action
+state1: predict label of left hand, with 0 is not detected
+state2: predict label of right hand
+index1_x: x coordinate of index finger of left hand
+index1_y: y coordinate of index finger of left hand
+index2_x: x coordinate of index finger of right hand
+index2_y: y coordinate of index finger of right hand
+
+'''
 message = {'action':0,'state1':0,'state2':0,'index1_x':0, 'index1_y':0, 'index2_x':0, 'index2_y':0}
 PROCESSED_FOLDER = './Processed'
 Accepted_format = ['pickle','bin']
@@ -36,6 +49,7 @@ class UDP:
         byte_strings = [num.to_bytes(4, byteorder='big') for num in message]
         # Concatenate the byte strings to form the encoded message
         encoded_message = b''.join(byte_strings)
+        print("encoded message: %s" % encoded_message)
         return encoded_message
     def send(self,msg):
         self.socket.sendto(self.encode_message(msg),(self.ip,self.port))
@@ -47,6 +61,27 @@ class UDP:
     def close(self):
         self.socket.close()
 
+UDP_c = UDP(UDP_IP,UDP_PORT)
+s = 0
+for j in range(10000):
+    print(f"Attempt {j}:")
+    msg = []
+    for i in message:
+        msg.append(random.randint(100,10000))
+        print(msg[-1])
+    msg[-1] = 1
+    s += msg[-1]
+    UDP_c.send(msg)
+    time.sleep(0.001)
+print(s)
+    
+    
+
+
+
+    
+
+#test the UDP class by set the message to random number
 
 
 
