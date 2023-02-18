@@ -67,3 +67,20 @@ Tìm các bài báo: đề xuất đặc trưng của tình trạng bàn tay (ha
 
 
 
+
+
+# 18/2
+
+
+
+Trong tuần này:
+
+- Thu dữ liệu, gộp lại
+- Train theo 2 phương pháp
+
+
+
+
+
+
+

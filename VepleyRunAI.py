@@ -74,19 +74,7 @@ for j in range(10000):
     UDP_c.send(msg)
     time.sleep(0.001)
 print(s)
-    
-    
-
-
-
-    
-
 #test the UDP class by set the message to random number
-
-
-
-
-
 class main:
     def __init__(self) -> None:
         global HEIGHT, WIDTH
