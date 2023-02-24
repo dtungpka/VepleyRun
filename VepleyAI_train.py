@@ -44,6 +44,21 @@ PARSE_LANDMARKS_JOINTS = [
 
 NO_OF_SAMPLES = 1000
 np.random.seed(1)
+
+def transform_joints(joints: list,hand = 0):
+        X = np.zeros((len(PARSE_LANDMARKS_JOINTS),))
+        landmarks = {point[0]:np.array(point[1:]) for point in joints}
+        if FLIP_RIGHT_HAND and hand == 1:
+            for k in landmarks:
+                landmarks[k][0] = W - landmarks[k][0]
+        for i,(_p1,_p2) in enumerate(PARSE_LANDMARKS_JOINTS):
+            if _p1 in landmarks and _p2 in landmarks:
+                tmp = VepleyAiTrain.calculate_angle(None,landmarks[_p1],landmarks[_p2])
+                X[i] = tmp
+            else:
+                X[i] = 0
+        return X
+
 class VepleyAiTrain():
     def __init__(self, filesPath = "Datasets",layers = LAYERS,train_ratio = 0.8 ,parentFolder = True,excluded = Excluded) -> None: 
         self.date = None
@@ -200,7 +215,7 @@ class VepleyAiTrain():
         global processed_folder
         if not os.path.exists(processed_folder):
             os.mkdir(processed_folder)
-        pickle.dump(self.parameters,open(os.path.join(processed_folder,dataFiles)+"_parameters.bin","wb"))
+        pickle.dump({'model':self.model,'parameters':self.parameters},open(os.path.join(processed_folder,dataFiles)+"_parameters.bin","wb"))
         print("Parameters saved to "+processed_folder+dataFiles+"_parameters.bin")
         
         
@@ -220,8 +235,8 @@ if __name__ == "__main__":
     else:
         print("No arguments given, please use --process or --train")
         input("Press enter for debug mode")
-        #instance.read_data(dataFiles,not s, Excluded)
-        #instance.save_processed()
+        instance.read_data(dataFiles,not s, Excluded)
+        instance.save_processed()
         instance.load()
         instance.train()
       
