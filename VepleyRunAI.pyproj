@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>b0013bfb-ae20-4b19-b475-a76a9936e761</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>VepleyRunAI.py</StartupFile>
+    <StartupFile>VepleyAI_train.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
