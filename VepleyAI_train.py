@@ -1,5 +1,6 @@
 from argparse import Action
 from asyncore import read
+from struct import unpack
 import numpy as np
 import matplotlib.pyplot as plt
 import json
@@ -10,19 +11,21 @@ import time
 import pickle
 import sys
 import DNN
+import shutil
 from VepleyAI_acquire import Actions
 TRAIN_TEST_RATIO = 0.8
 #H: 480
 #W: 640
 H = 480
 W = 640
-dataFiles = "Datasets"
+dataFiles = "D:\\2021-2022\\Research\\Dataset\\VepleyAI"
 processed_folder = "./Processed/"
 Excluded = []
 parent_folder = True
 IGNORE_RIGHT_HAND = False
 FLIP_RIGHT_HAND = True
 LEARNING_RATE = 0.0001
+ITERATIONS = 40000
 #train the neural net with 256 
 LAYERS = [1, 256, 256, 256, len(Actions)]
 
@@ -49,15 +52,8 @@ class VepleyAiTrain():
         if not os.path.exists(path):
             raise Exception("Path does not exist:" + path)
         #check if detail.json is in path
-        if os.path.exists(os.path.join(path,"detail.json")):
-            #read the 'total' key in file and save to NO_OF_SAMPLES
-            global NO_OF_SAMPLES,Actions,W,H
-            with open(os.path.join(path,"detail.json"),"r") as f:
-                detail = json.load(f)
-                NO_OF_SAMPLES = detail['total']
-                Actions = detail.keys()
-                W = detail['W']
-                H = detail['H']
+        self.unpack(path,_parentFolder)
+        self.get_details(path,_parentFolder)
         self.data = {'X':np.zeros((len(PARSE_LANDMARKS_JOINTS),NO_OF_SAMPLES)),
                      'Y':np.zeros(NO_OF_SAMPLES),
                      'ID':np.zeros(NO_OF_SAMPLES)}
@@ -73,8 +69,38 @@ class VepleyAiTrain():
         global processed_folder
         if not os.path.exists(processed_folder):
             os.mkdir(processed_folder)
-        pickle.dump(self.data,open(processed_folder+dataFiles+".pickle","wb"))
+        pickle.dump(self.data,open(os.path.join(processed_folder,dataFiles)+".pickle","wb"))
         print("Data processed,saved to "+processed_folder+dataFiles+".pickle")
+    def unpack(self,path,parentFolder):
+        if parentFolder:
+            for VAID in os.listdir(path):
+                #using shutil to unpack the zip file
+                #if file end with .VAID,  unpack as .zip
+                if VAID.endswith(".VAID") and not os.path.exists(os.path.join(path,VAID[:-5])):
+                    print("Unpacking "+VAID)
+                    shutil.unpack_archive(os.path.join(path,VAID),os.path.join(path,VAID[:-5]),"zip")
+        else:
+            pass
+    def get_details(self,path, parentFolder):
+        global NO_OF_SAMPLES,Actions,W,H
+        if parentFolder:
+            NO_OF_SAMPLES = 0
+            for folder in os.listdir(path):
+                if os.path.isdir(os.path.join(path,folder)):
+                    #read detail.json, sum the total
+                    with open(os.path.join(path,folder,"detail.json"),"r") as f:
+                        detail = json.load(f)
+                        NO_OF_SAMPLES += detail['total']
+                        W = detail['width']
+                        H = detail['height']
+        else:
+            with open(os.path.join(path,"detail.json"),"r") as f:
+                detail = json.load(f)
+                NO_OF_SAMPLES = detail['total']
+
+                W = detail['width']
+                H = detail['height']
+        
         
     def _append_data(self,path: str):
         global IGNORE_RIGHT_HAND,FLIP_RIGHT_HAND,PARSE_LANDMARKS_JOINTS
@@ -137,7 +163,7 @@ class VepleyAiTrain():
         _parameters = self.parameters
         history = []
         cost = 100
-        for i in range(0, 90000):
+        for i in range(0, ITERATIONS):
             AL, caches = DNN.L_model_forward(self.X, _parameters)
             grads = DNN.L_model_backward(AL, self.Y, caches)
             _cost = np.sum(DNN.compute_cost(AL, self.Y))

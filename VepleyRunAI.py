@@ -63,16 +63,7 @@ class UDP:
 
 UDP_c = UDP(UDP_IP,UDP_PORT)
 s = 0
-for j in range(10000):
-    print(f"Attempt {j}:")
-    msg = []
-    for i in message:
-        msg.append(random.randint(100,10000))
-        print(msg[-1])
-    msg[-1] = 1
-    s += msg[-1]
-    UDP_c.send(msg)
-    time.sleep(0.001)
+
 print(s)
 #test the UDP class by set the message to random number
 class main:
