@@ -33,8 +33,9 @@ Huấn luyện 2 mạng riêng biệt,
 
 
 - Riêng trên ảnh RGB:
-Huấn luyện riêng 1 cách khác:
-YOLO.
+### Huấn luyện riêng 1 cách khác: YOLO.
+
+
 -- Huấn luyện nhận dạng luôn action từ ảnh
 
 
@@ -77,6 +78,26 @@ Trong tuần này:
 
 - Thu dữ liệu, gộp lại
 - Train theo 2 phương pháp
+
+
+
+# 26/2
+## VD: thu 10 ng: chia 8 nguoi train, 2 nguoi test
+Moi ng thu ~10 lan, train/test =  8/2
+
+- Muc tieu: nhan dang posture tung frame
+
+
+
+Xu li sau:
+- Tim cach xu li nhieu
+- Tim cach xu li nhieu nguoi
+
+
+
+
+
+
 
 
 
