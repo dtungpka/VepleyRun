@@ -1,6 +1,4 @@
-from argparse import Action
-from asyncore import read
-from struct import unpack
+
 import numpy as np
 import matplotlib.pyplot as plt
 import json
@@ -39,7 +37,7 @@ PARSE_LANDMARKS_JOINTS = [
 ]
 # relu
 # sigmoid
-
+VALIDATION_FILES = ['VepleyAI_dataset_Hoang1', 'VepleyAI_dataset_Nam1']
 
 
 NO_OF_SAMPLES = 1000
@@ -58,14 +56,24 @@ def transform_joints(joints: list,hand = 0):
             else:
                 X[i] = 0
         return X
-
+def accuracy_score(y_true, y_pred):
+    return np.mean(y_true == y_pred)
+def precision_score(y_true, y_pred):
+    return np.mean(y_true * y_pred)
+def recall_score(y_true, y_pred):
+    return np.mean(y_true * y_pred) / np.mean(y_true)
+def f1_score(y_true, y_pred):
+    p = precision_score(y_true, y_pred)
+    r = recall_score(y_true, y_pred)
+    return 2 * p * r / (p + r)
 class VepleyAiTrain():
     def __init__(self, filesPath = "Datasets",layers = LAYERS,train_ratio = 0.8 ,parentFolder = True,excluded = Excluded) -> None: 
         self.date = None
         self.data = None
         #self.read_data(filesPath , parentFolder, excluded)
-        pass
+        
     def read_data(self,path: str,_parentFolder: bool = parent_folder, _excluded: list = Excluded):
+        timer = time.time()
         if not os.path.exists(path):
             raise Exception("Path does not exist:" + path)
         #check if detail.json is in path
@@ -78,10 +86,27 @@ class VepleyAiTrain():
             for folder in os.listdir(path):
                 if folder not in _excluded and os.path.isdir(os.path.join(path,folder)):
                     print("Processing dataset: "+folder)
-                    self._append_data(os.path.join(path,folder))
+                    self.data = self._append_data(os.path.join(path,folder),self.data)
         else:
-            self._append_data(path)
+            self.data = self._append_data(path,self.data)
         self.data['X'] = self.data['X'].T
+        print("Data loaded in "+str(time.time()-timer)+" seconds")
+    def read_validation(self,path: str,_parentFolder: bool = parent_folder):
+        if not os.path.exists(path):
+            raise Exception("Path does not exist:" + path)
+        #check if detail.json is in path
+        validation_samples = self.get_validation_details(path)
+        self.data['validation'] = {'X':np.zeros((len(PARSE_LANDMARKS_JOINTS),validation_samples)),
+                     'Y':np.zeros(validation_samples),
+                     'ID':np.zeros(validation_samples)}
+        if _parentFolder:
+            for folder in VALIDATION_FILES:
+                if  os.path.isdir(os.path.join(path,folder)):
+                    print("Processing validation file: "+folder)
+                    self.data['validation'] = self._append_data(os.path.join(path,folder),self.data['validation'])
+        else:
+            self.data['validation'] = self._append_data(path,self.data['validation'])
+        self.data['validation']['X'] =self.data['validation']['X'].T
     def save_processed(self):
         global processed_folder
         if not os.path.exists(processed_folder):
@@ -98,28 +123,52 @@ class VepleyAiTrain():
                     shutil.unpack_archive(os.path.join(path,VAID),os.path.join(path,VAID[:-5]),"zip")
         else:
             pass
+    def get_validation_details(self,path):
+        validation_samples = 0
+        print("\nValidation data: \n")
+        for i,folder in enumerate(VALIDATION_FILES):
+            if os.path.isdir(os.path.join(path,folder)):
+                #read detail.json, sum the total
+                with open(os.path.join(path,folder,"detail.json"),"r") as f:
+                    detail = json.load(f)
+                    validation_samples += detail['total']*2
+                    print(f'__Person {i}__: {folder}')
+                    for j in detail.keys():
+                        if j == 'width' or j == 'height':
+                            continue
+                        print(f'__{j}__: {detail[j]}')
+        return validation_samples
     def get_details(self,path, parentFolder):
         global NO_OF_SAMPLES,Actions,W,H
+        self._transform_data()
         if parentFolder:
             NO_OF_SAMPLES = 0
-            for folder in os.listdir(path):
+            for i,folder in enumerate(os.listdir(path)):
+                # Excluded the validation files
+                if folder in VALIDATION_FILES:
+                    continue
                 if os.path.isdir(os.path.join(path,folder)):
                     #read detail.json, sum the total
                     with open(os.path.join(path,folder,"detail.json"),"r") as f:
                         detail = json.load(f)
-                        NO_OF_SAMPLES += detail['total']*2
+                        NO_OF_SAMPLES += detail['hands'][0] + detail['hands'][1]
                         W = detail['width']
                         H = detail['height']
+                        print(f'__Person {i}__: {folder}')
+                        for j in detail.keys():
+                            if j == 'width' or j == 'height':
+                                continue
+                            print(f'- {j}: {detail[j]}')
         else:
             with open(os.path.join(path,"detail.json"),"r") as f:
                 detail = json.load(f)
-                NO_OF_SAMPLES = detail['total']*2
+                NO_OF_SAMPLES = detail['hands'][0] + detail['hands'][1]
 
                 W = detail['width']
                 H = detail['height']
         
         
-    def _append_data(self,path: str):
+    def _append_data(self,path: str,data_dict: dict):
         global IGNORE_RIGHT_HAND,FLIP_RIGHT_HAND,PARSE_LANDMARKS_JOINTS
         if not os.path.exists(path):
             raise Exception("Path does not exist:" + path)
@@ -132,11 +181,11 @@ class VepleyAiTrain():
                         if IGNORE_RIGHT_HAND and hand == '1':
                             continue
                         if hand == '0':
-                            self.data['ID'][int(ID)] = int(ID+hand)
-                            self.data['Y'][int(ID)] = j
+                            data_dict['ID'][int(ID)] = int(ID+hand)
+                            data_dict['Y'][int(ID)] = j
                         else:
-                            self.data['ID'][int(ID)*2] = int(ID+hand)
-                            self.data['Y'][int(ID)*2] = j
+                            data_dict['ID'][int(ID)*2] = int(ID+hand)
+                            data_dict['Y'][int(ID)*2] = j
                         landmarks = {point[0]:np.array(point[1:]) for point in raw_datas[ID][hand]}
                         if FLIP_RIGHT_HAND and hand == '1':
                             for k in landmarks:
@@ -145,15 +194,39 @@ class VepleyAiTrain():
                             if _p1 in landmarks and _p2 in landmarks:
                                 tmp = self.calculate_angle(landmarks[_p1],landmarks[_p2])
                                 if hand == '0':
-                                    self.data['X'][i][int(ID)] = tmp
-                                self.data['X'][i][int(ID)*2] = tmp
+                                    data_dict['X'][i][int(ID)] = tmp
+                                data_dict['X'][i][int(ID)*2] = tmp
                             else:
                                 if hand == '0':
                                     self.data['X'][i][int(ID)] = 0
                                 self.data['X'][i][int(ID)*2] = 0
-            print("\rProcessed "+action,f'{j+1} out of {len(Actions)} ',end='\n')     
+            print("\rProcessed "+action,f'{j+1} out of {len(Actions)} ',end='\n')    
+            return data_dict
     def calculate_angle(self,landmark1, landmark2):
         return np.math.atan2(np.linalg.det([landmark1, landmark2]), np.dot(landmark1, landmark2))
+    def _transform_data(self):
+        '''
+        this function is to loop through all the dataFiles, check if details.json have attribute "hands", if not, add it by
+        loop through all the {Action}.json files, in each IDs, if have key "0" then count it as hand 0, if have key "1" then count it as hand 1
+        '''
+        for i,folder in enumerate(os.listdir(dataFiles)):
+            if os.path.isdir(os.path.join(dataFiles,folder)):
+                with open(os.path.join(dataFiles,folder,"detail.json"),"r") as f:
+                    detail = json.load(f)
+                    if 'hands' not in detail.keys():
+                        detail['hands'] = [0,0]
+                        for action in Actions:
+                            with open(os.path.join(dataFiles,folder,action+".json"),"r") as f:
+                                raw_datas = json.load(f)
+                                for ID in raw_datas:
+                                    if '0' in raw_datas[ID]:
+                                        detail['hands'][0] += 1
+                                    if '1' in raw_datas[ID]:
+                                        detail['hands'][1] += 1
+                        with open(os.path.join(dataFiles,folder,"detail.json"),"w") as f:
+                            json.dump(detail,f)
+                        print(f'Data {folder} has been updated')
+        
     def load(self):
         if self.data == None:
             #prompt to select file, end with .bin
@@ -186,6 +259,8 @@ class VepleyAiTrain():
         print("Y shape: ",self.Y.shape)
         print("X_test shape: ",self.X_test.shape)
         print("Y_test shape: ",self.Y_test.shape)
+        print("X_val shape: ",self.data['validation']['X'].shape)
+        print("Y_val shape: ",self.data['validation']['Y'].shape)
     def train(self):
         global LAYERS, ITERATIONS, ACTIVATION
         if self.X is None:
@@ -194,8 +269,25 @@ class VepleyAiTrain():
         self.model = DNN.create_model(LAYERS,ACTIVATION)
         self.parameters = DNN.train_model(self.model,self.X,self.Y,self.X_test,self.Y_test,ITERATIONS)
         self.save_parameters()
+        #test on the validation set
+        self.test()
+        
         DNN.plot_model_history(self.parameters)
         self.predict_random()
+    def test(self):
+        '''
+        Using the validation set to run the test
+        '''
+        X_val = self.data['validation']['X']
+        Y_val = self.data['validation']['Y']
+
+        Y_pred = DNN.predict(self.model,X_val)
+        Y_pred = np.argmax(Y_pred,axis=1)
+        
+        print("Accuracy: ",accuracy_score(Y_val,Y_pred))
+        print("Precision: ",precision_score(Y_val,Y_pred))
+        print("Recall: ",recall_score(Y_val,Y_pred))
+        print("F1: ",f1_score(Y_val,Y_pred))
         
     def predict_random(self):
         if self.X_test is None:
@@ -226,7 +318,8 @@ if __name__ == "__main__":
     s = "--single" in sys.argv or "-s" in sys.argv
     if len(sys.argv) > 1 :
       if "--process" in sys.argv or "-p" in sys.argv:
-        instance.read_data(dataFiles,not s, Excluded)
+        instance.read_data(dataFiles,not s, VALIDATION_FILES)
+        instance.read_validation(dataFiles)
         instance.save_processed()
       else:
           instance.load()
@@ -235,7 +328,8 @@ if __name__ == "__main__":
     else:
         print("No arguments given, please use --process or --train")
         input("Press enter for debug mode")
-        instance.read_data(dataFiles,not s, Excluded)
+        instance.read_data(dataFiles,not s, VALIDATION_FILES)
+        instance.read_validation(dataFiles)
         instance.save_processed()
         instance.load()
         instance.train()

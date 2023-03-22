@@ -26,7 +26,7 @@ def MoveMouse(pos):
     lastX,lastY = lastMousePos
     for i in range(1,10):
         win32api.SetCursorPos((int(lastX+i*(x-lastX)/10),int(lastY+i*(y-lastY)/10)))
-        time.sleep(0.01)
+        #time.sleep(0.01)
         lastMousePos = pos
         
 

@@ -93,7 +93,15 @@ Xu li sau:
 - Tim cach xu li nhieu
 - Tim cach xu li nhieu nguoi
 
+3/4
 
+
+
+Thu thêm dữ liệu, đa dạng
+
+Chia train 60, val 20, test 20
+
+Generate bounding box for yolo
 
 
 

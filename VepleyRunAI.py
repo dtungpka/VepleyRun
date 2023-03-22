@@ -17,9 +17,9 @@ UDP_PORT = 3939
 '''
 In the message dict:
 
-action: 0 for no action, 1 for action
-state1: predict label of left hand, with 0 is not detected
-state2: predict label of right hand
+action: head action for moving
+state1:left hand state
+state2: right hand state
 index1_x: x coordinate of index finger of left hand
 index1_y: y coordinate of index finger of left hand
 index2_x: x coordinate of index finger of right hand
@@ -49,7 +49,7 @@ class UDP:
         byte_strings = [num.to_bytes(4, byteorder='big') for num in message]
         # Concatenate the byte strings to form the encoded message
         encoded_message = b''.join(byte_strings)
-        print("encoded message: %s" % encoded_message)
+        #print("encoded message: %s" % encoded_message)
         return encoded_message
     def send(self,msg):
         self.socket.sendto(self.encode_message(msg),(self.ip,self.port))
@@ -65,6 +65,18 @@ UDP_c = UDP(UDP_IP,UDP_PORT)
 s = 0
 
 print(s)
+
+command_list = {' ': 0, '.': 1, '<': 2, '>':3} #reserve for cover command
+
+while True:
+    cmd = input("Enter command: ")
+    if cmd not in command_list.keys():
+        print("Invalid command")
+        continue
+    message['action'] = command_list[cmd]
+    UDP_c.send(message.values())
+    
+
 #test the UDP class by set the message to random number
 class main:
     def __init__(self) -> None:
@@ -110,8 +122,8 @@ class main:
             
             img_drawed = img.copy()
             img_drawed = self.detector.findHands(img_drawed)
-            no_hand = self.detector.get_number_of_hands()
-            for i in range(no_hand):
+            no_of_hand = self.detector.get_number_of_hands()
+            for i in range(no_of_hand):
                 lmList = self.detector.findPosition(img_drawed,i)
                 #   TBA: check if the hand is in the frame
             
