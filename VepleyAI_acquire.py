@@ -19,7 +19,7 @@ Actions = ['Idle',
            'Shoot'
            ]
 
-NUMBER_OF_SAMPLES = 400
+NUMBER_OF_SAMPLES = 1000
 CHANGE_POSE_EVERY = 0.2
 PAUSE_TIME = 2.0
 CAPTURE_RATE = 1 # capture every n frame
@@ -153,7 +153,8 @@ def main():
                 if i == no_of_hand-1:
                     handDetector.ID += 1
                     pb.print_progress_bar(handDetector.ID % NUMBER_OF_SAMPLES)
-                hands_counts[i] += 1
+                
+                hands_counts[i%2] += 1
         if handDetector.ID % NUMBER_OF_SAMPLES == 0 and handDetector.capturing and (handDetector.waitID % NUMBER_OF_SAMPLES != 0):
             #save captured_action to json and clear content of var
             with open(os.path.join(Path, f'{Actions[current_action]}.json'), 'w') as outfile:

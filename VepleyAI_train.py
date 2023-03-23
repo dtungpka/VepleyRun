@@ -1,4 +1,5 @@
 
+from argparse import Action
 import numpy as np
 import matplotlib.pyplot as plt
 import json
@@ -68,8 +69,65 @@ def f1_score(y_true, y_pred):
     return 2 * p * r / (p + r)
 class VepleyAiTrain():
     def __init__(self, filesPath = "Datasets",layers = LAYERS,train_ratio = 0.8 ,parentFolder = True,excluded = Excluded) -> None: 
+        global LEARNING_RATE, ITERATIONS, ACTIVATION, LAYERS,Actions
+        self.start_time = time.time()
         self.date = None
         self.data = None
+        self.model_details = {
+    "Data": {
+        "Train": {
+            "Source": [],
+            "Size": {"Hand1": 0, "Hand2": 0, "Total":0},
+            "Features": ["List of features in training data"],
+            "Target": "Target variable or label in training data"
+        },
+        "Test": {
+            "Source": [],
+            "Size": {"Hand1": 0, "Hand2": 0, "Total":0},
+            "Features": ["List of features in test data"],
+            "Target": "Target variable or label in test data"
+        },
+        "Validation": {
+            "Source": [],
+            "Size": {"Hand1": 0, "Hand2": 0, "Total":0},
+            "Features": ["List of features in validation data"],
+            "Target": "Target variable or label in validation data"
+        }
+    },
+    "Time":{
+        "Data processing": "Time taken to process data",
+        "Training": "Time taken to train model",
+        "Total": "Total time taken"
+        },
+    "Model": {
+    "Architecture": "Deep neural network (DNN)",
+    "Layers": LAYERS,
+    "Activation Functions": ACTIVATION,
+    "Training": {
+        "Optimizer": "Adam optimizer",
+        "Loss Function": "Categorical cross-entropy",
+        "Metrics": ["Accuracy"],
+        "Batch Size": 32,
+        "Epochs": "Number of training epochs"
+    },
+    "Actions": Actions,
+    
+    "Result": {
+        "Training Loss": "Training loss at the end of training",
+        "Training Accuracy": "Training accuracy at the end of training",
+        "Validation Loss": "Validation loss at the end of training",
+        "Validation Accuracy": "Validation accuracy at the end of training",
+        "Test Loss": "Test loss at the end of training",
+        "Test Accuracy": "Test accuracy at the end of training",
+        "Validation":{
+            
+            
+            
+            }
+    }
+}
+}
+
         #self.read_data(filesPath , parentFolder, excluded)
         
     def read_data(self,path: str,_parentFolder: bool = parent_folder, _excluded: list = Excluded):
@@ -78,10 +136,10 @@ class VepleyAiTrain():
             raise Exception("Path does not exist:" + path)
         #check if detail.json is in path
         self.unpack(path,_parentFolder)
-        self.get_details(path,_parentFolder)
+        hand = self.get_details(path,_parentFolder)
         self.data = {'X':np.zeros((len(PARSE_LANDMARKS_JOINTS),NO_OF_SAMPLES)),
                      'Y':np.zeros(NO_OF_SAMPLES),
-                     'ID':np.zeros(NO_OF_SAMPLES)}
+                     'ID':np.zeros(NO_OF_SAMPLES),'Hand':hand}
         if _parentFolder:
             for folder in os.listdir(path):
                 if folder not in _excluded and os.path.isdir(os.path.join(path,folder)):
@@ -91,14 +149,15 @@ class VepleyAiTrain():
             self.data = self._append_data(path,self.data)
         self.data['X'] = self.data['X'].T
         print("Data loaded in "+str(time.time()-timer)+" seconds")
+        self.model_details['Time']['Data processing'] = round(time.time()-timer,5)
     def read_validation(self,path: str,_parentFolder: bool = parent_folder):
         if not os.path.exists(path):
             raise Exception("Path does not exist:" + path)
         #check if detail.json is in path
-        validation_samples = self.get_validation_details(path)
+        validation_samples,hand = self.get_validation_details(path)
         self.data['validation'] = {'X':np.zeros((len(PARSE_LANDMARKS_JOINTS),validation_samples)),
                      'Y':np.zeros(validation_samples),
-                     'ID':np.zeros(validation_samples)}
+                     'ID':np.zeros(validation_samples),'Hand':hand}
         if _parentFolder:
             for folder in VALIDATION_FILES:
                 if  os.path.isdir(os.path.join(path,folder)):
@@ -125,22 +184,28 @@ class VepleyAiTrain():
             pass
     def get_validation_details(self,path):
         validation_samples = 0
-        print("\nValidation data: \n")
+        hand = [0,0]
         for i,folder in enumerate(VALIDATION_FILES):
             if os.path.isdir(os.path.join(path,folder)):
                 #read detail.json, sum the total
+                self.model_details['Data']['Validation']['Source'].append(folder)
                 with open(os.path.join(path,folder,"detail.json"),"r") as f:
                     detail = json.load(f)
-                    validation_samples += detail['total']*2
-                    print(f'__Person {i}__: {folder}')
+                    validation_samples +=  detail['hands'][0] + detail['hands'][1]
+                    hand[0] += detail['hands'][0]
+                    hand[1] += detail['hands'][1]
                     for j in detail.keys():
                         if j == 'width' or j == 'height':
                             continue
-                        print(f'__{j}__: {detail[j]}')
-        return validation_samples
+        self.model_details['Data']['Validation']['Size']['Total'] = validation_samples
+        self.model_details['Data']['Validation']['Size']['Hand1'] = hand[0]
+        self.model_details['Data']['Validation']['Size']['Hand2'] = hand[1]
+        return validation_samples,hand
+    
     def get_details(self,path, parentFolder):
         global NO_OF_SAMPLES,Actions,W,H
         self._transform_data()
+        hand = [0,0]
         if parentFolder:
             NO_OF_SAMPLES = 0
             for i,folder in enumerate(os.listdir(path)):
@@ -149,16 +214,18 @@ class VepleyAiTrain():
                     continue
                 if os.path.isdir(os.path.join(path,folder)):
                     #read detail.json, sum the total
+                    self.model_details['Data']['Train']['Source'].append(folder)
+                    self.model_details['Data']['Test']['Source'].append(folder)
                     with open(os.path.join(path,folder,"detail.json"),"r") as f:
                         detail = json.load(f)
                         NO_OF_SAMPLES += detail['hands'][0] + detail['hands'][1]
+                        hand[0] += detail['hands'][0]
+                        hand[1] += detail['hands'][1]
                         W = detail['width']
                         H = detail['height']
-                        print(f'__Person {i}__: {folder}')
                         for j in detail.keys():
                             if j == 'width' or j == 'height':
                                 continue
-                            print(f'- {j}: {detail[j]}')
         else:
             with open(os.path.join(path,"detail.json"),"r") as f:
                 detail = json.load(f)
@@ -166,14 +233,16 @@ class VepleyAiTrain():
 
                 W = detail['width']
                 H = detail['height']
+        return hand
         
         
     def _append_data(self,path: str,data_dict: dict):
         global IGNORE_RIGHT_HAND,FLIP_RIGHT_HAND,PARSE_LANDMARKS_JOINTS
+        right_hand_index = data_dict['Hand'][0] 
         if not os.path.exists(path):
             raise Exception("Path does not exist:" + path)
         for j,action in enumerate(Actions):
-            print("Processing "+action,f'{j+1} out of {len(Actions)} ',end='')
+            print("\rProcessing "+action,f'{j+1} out of {len(Actions)} ',end='')
             with open(os.path.join(path,action+".json"),"r") as f:
                 raw_datas = json.load(f)
                 for ID in raw_datas:
@@ -184,8 +253,8 @@ class VepleyAiTrain():
                             data_dict['ID'][int(ID)] = int(ID+hand)
                             data_dict['Y'][int(ID)] = j
                         else:
-                            data_dict['ID'][int(ID)*2] = int(ID+hand)
-                            data_dict['Y'][int(ID)*2] = j
+                            data_dict['ID'][int(ID)+right_hand_index] = int(ID+hand)
+                            data_dict['Y'][int(ID)+right_hand_index] = j
                         landmarks = {point[0]:np.array(point[1:]) for point in raw_datas[ID][hand]}
                         if FLIP_RIGHT_HAND and hand == '1':
                             for k in landmarks:
@@ -195,13 +264,13 @@ class VepleyAiTrain():
                                 tmp = self.calculate_angle(landmarks[_p1],landmarks[_p2])
                                 if hand == '0':
                                     data_dict['X'][i][int(ID)] = tmp
-                                data_dict['X'][i][int(ID)*2] = tmp
+                                data_dict['X'][i][int(ID)+right_hand_index] = tmp
                             else:
                                 if hand == '0':
-                                    self.data['X'][i][int(ID)] = 0
-                                self.data['X'][i][int(ID)*2] = 0
+                                    data_dict['X'][i][int(ID)] = 0
+                                data_dict['X'][i][int(ID)+right_hand_index] = 0
             print("\rProcessed "+action,f'{j+1} out of {len(Actions)} ',end='\n')    
-            return data_dict
+        return data_dict
     def calculate_angle(self,landmark1, landmark2):
         return np.math.atan2(np.linalg.det([landmark1, landmark2]), np.dot(landmark1, landmark2))
     def _transform_data(self):
@@ -251,7 +320,7 @@ class VepleyAiTrain():
         self.Y = self.data['Y'][:train_size]
         #from Y (800,) to (800,5)
         self.Y = np.eye(len(Actions))[self.Y.astype(int)]
-        
+        pmt_train = pmt[:train_size]
         self.X_test = self.data['X'][train_size:,:]
         self.Y_test = np.eye(len(Actions))[(self.data['Y'][train_size:]).astype(int)]
         #print all the shape
@@ -261,19 +330,59 @@ class VepleyAiTrain():
         print("Y_test shape: ",self.Y_test.shape)
         print("X_val shape: ",self.data['validation']['X'].shape)
         print("Y_val shape: ",self.data['validation']['Y'].shape)
+        self.model_details['Data']['Train']['Size']['Total'] = self.X.shape[0]
+        self.model_details['Data']['Test']['Size']['Total'] = self.X_test.shape[0]
+        self.model_details['Data']['Validation']['Size']['Total'] = self.data['validation']['X'].shape[0]
+        
+        #count the number of pmt_train that < self.data['Hand'][0]
+        self.model_details['Data']['Train']['Size']['Hand1'] = np.sum(pmt_train < self.data['Hand'][0])
+        self.model_details['Data']['Train']['Size']['Hand2'] = np.sum(pmt_train >= self.data['Hand'][0])
+        self.model_details['Data']['Test']['Size']['Hand1'] = self.data['Hand'][0] - self.model_details['Data']['Train']['Size']['Hand1']
+        self.model_details['Data']['Test']['Size']['Hand2'] = self.data['Hand'][1] - self.model_details['Data']['Train']['Size']['Hand2']
+
+        self.model_details['Data']['Validation']['Size']['Hand1'] = self.data['validation']['Hand'][0]
+        self.model_details['Data']['Validation']['Size']['Hand2'] = self.data['validation']['Hand'][1]
+        
+
+        
     def train(self):
         global LAYERS, ITERATIONS, ACTIVATION
         if self.X is None:
             print("No data to train")
             return
+        timer = time.time()
         self.model = DNN.create_model(LAYERS,ACTIVATION)
         self.parameters = DNN.train_model(self.model,self.X,self.Y,self.X_test,self.Y_test,ITERATIONS)
+        print("Training time: ",time.time()-timer)
+        self.model_details['Time']['Training'] = round(time.time()-timer,5)
+        
         self.save_parameters()
+        #Write to the self.model_details
+        self.model_details['Model']['Training']['Epoch'] = ITERATIONS
+
+        
         #test on the validation set
         self.test()
+        train_acc = self.parameters.history['accuracy'][-1]
+        train_loss = self.parameters.history['loss'][-1]
+        test_acc = self.parameters.history['val_accuracy'][-1]
+        test_loss = self.parameters.history['val_loss'][-1]
+        self.model_details['Model']['Result']['Training Accuracy'] = train_acc
+        self.model_details['Model']['Result']['Training Loss'] = train_loss
+        self.model_details['Model']['Result']['Test Accuracy'] = test_acc
+        self.model_details['Model']['Result']['Test Loss'] = test_loss
         
         DNN.plot_model_history(self.parameters)
         self.predict_random()
+        self.model_details['Time']['Total'] = round(time.time()-self.start_time,5)
+        print(self.model_details)
+        self.save_model_details()
+
+    def save_model_details(self):
+        #save as json in script parent folder
+        with open('model_details.json', 'w') as outfile:
+            s = str(self.model_details).replace("'",'"')
+            outfile.write(s)
     def test(self):
         '''
         Using the validation set to run the test
@@ -283,11 +392,26 @@ class VepleyAiTrain():
 
         Y_pred = DNN.predict(self.model,X_val)
         Y_pred = np.argmax(Y_pred,axis=1)
+        #Write the self.model_details['Model']['Result']["Validation"] consist of all correctly predicted Actions
+        for i in range(len(Actions)):
+            self.model_details['Model']['Result']['Validation'][Actions[i]] = np.sum(Y_pred[Y_val == i] == i)
+
+        
         
         print("Accuracy: ",accuracy_score(Y_val,Y_pred))
         print("Precision: ",precision_score(Y_val,Y_pred))
         print("Recall: ",recall_score(Y_val,Y_pred))
         print("F1: ",f1_score(Y_val,Y_pred))
+
+        self.model_details['Model']['Result']['Validation Accuracy'] = accuracy_score(Y_val,Y_pred)
+        self.model_details['Model']['Result']['Validation Precision'] = precision_score(Y_val,Y_pred)
+        self.model_details['Model']['Result']['Validation Recall'] = recall_score(Y_val,Y_pred)
+        self.model_details['Model']['Result']['Validation F1'] = f1_score(Y_val,Y_pred)
+        
+
+        
+        
+        
         
     def predict_random(self):
         if self.X_test is None:

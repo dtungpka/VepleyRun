@@ -17,7 +17,7 @@ FingerImages_set1/
 env/
 # Mono auto generated files
 mono_crash.*
-
+Dataset*
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

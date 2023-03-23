@@ -1,0 +1,91 @@
+{
+  "Data": {
+    "Train": {
+      "Source": [
+        "VepleyAI_dataset_Cuong1",
+        "VepleyAI_dataset_Cuong2",
+        "VepleyAI_dataset_Cuong3",
+        "VepleyAI_dataset_Cuong4",
+        "VepleyAI_dataset_Cuong5",
+        "VepleyAI_dataset_Hung1",
+        "VepleyAI_dataset_Hung2",
+        "VepleyAI_dataset_Hung3",
+        "VepleyAI_dataset_Hung4",
+        "VepleyAI_dataset_Hung5",
+        "VepleyAI_dataset_Thanh1",
+        "VepleyAI_dataset_Thanh2",
+        "VepleyAI_dataset_Thanh3",
+        "VepleyAI_dataset_Thanh4",
+        "VepleyAI_dataset_Thanh5"
+      ],
+      "Size": { "Hand1": 24002, "Hand2": 3573, "Total": 27575 },
+      "Features": ["List of features in training data"],
+      "Target": "Target variable or label in training data"
+    },
+    "Test": {
+      "Source": [
+        "VepleyAI_dataset_Cuong1",
+        "VepleyAI_dataset_Cuong2",
+        "VepleyAI_dataset_Cuong3",
+        "VepleyAI_dataset_Cuong4",
+        "VepleyAI_dataset_Cuong5",
+        "VepleyAI_dataset_Hung1",
+        "VepleyAI_dataset_Hung2",
+        "VepleyAI_dataset_Hung3",
+        "VepleyAI_dataset_Hung4",
+        "VepleyAI_dataset_Hung5",
+        "VepleyAI_dataset_Thanh1",
+        "VepleyAI_dataset_Thanh2",
+        "VepleyAI_dataset_Thanh3",
+        "VepleyAI_dataset_Thanh4",
+        "VepleyAI_dataset_Thanh5"
+      ],
+      "Size": { "Hand1": 5998, "Hand2": 896, "Total": 6894 },
+      "Features": ["List of features in test data"],
+      "Target": "Target variable or label in test data"
+    },
+    "Validation": {
+      "Source": ["VepleyAI_dataset_Hoang1", "VepleyAI_dataset_Nam1"],
+      "Size": { "Hand1": 4000, "Hand2": 3905, "Total": 7905 },
+      "Features": ["List of features in validation data"],
+      "Target": "Target variable or label in validation data"
+    }
+  },
+  "Time": {
+    "Data processing": 27.77326,
+    "Training": 7.1454,
+    "Total": 66.62508
+  },
+  "Model": {
+    "Architecture": "Deep neural network (DNN)",
+    "Layers": [512, 256, 256, 5],
+    "Activation Functions": ["relu", "relu", "relu", "sigmoid"],
+    "Training": {
+      "Optimizer": "Adam optimizer",
+      "Loss Function": "Categorical cross-entropy",
+      "Metrics": ["Accuracy"],
+      "Batch Size": 32,
+      "Epochs": "Number of training epochs",
+      "Epoch": 2
+    },
+    "Actions": ["Idle", "Pickup_item", "Use_item", "Aim", "Shoot"],
+    "Result": {
+      "Training Loss": 0.015752987936139107,
+      "Training Accuracy": 0.9972801208496094,
+      "Validation Loss": "Validation loss at the end of training",
+      "Validation Accuracy": 0.6862745098039216,
+      "Test Loss": 0.07359879463911057,
+      "Test Accuracy": 0.9872352480888367,
+      "Validation": {
+        "Idle": 4593,
+        "Pickup_item": 685,
+        "Use_item": 5,
+        "Aim": 5,
+        "Shoot": 137
+      },
+      "Validation Precision": 2.157495256166983,
+      "Validation Recall": 2.1329414707353678,
+      "Validation F1": 2.145148103892837
+    }
+  }
+}
