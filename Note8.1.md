@@ -1,3 +1,22 @@
+### 26/3
+
+Thu trên nhiều người, chia train, test, valdiation khác nhau = 3:1:1
+
+Sửa các cách tính confusion matrix: F1,...
+
+Sửa thuật toán đảo tay
+
+Train -> Valdiation -> Test
+
+
+> Train phương pháp khác (Nếu có thời gian)
+
+
+
+
+
+
+
 
 
 

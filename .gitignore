@@ -25,6 +25,8 @@ Dataset*
 [Rr]eleases/
 x64/
 x86/
+build/
+dist/
 [Ww][Ii][Nn]32/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/

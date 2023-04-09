@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
 from tqdm.keras import TqdmCallback
 
 
-def create_model(layers, activation: list,loss= 'categorical_crossentropy'  , optimizer=Adam()):
+def create_model(layers, activation: list,loss= 'sparse_categorical_crossentropy'  , optimizer=Adam()):
     model = Sequential()
     for i, nodes in enumerate(layers):
         if i == 0:
-            model.add(Dense(nodes, input_shape=(20,), activation=activation[0]))
+            model.add(Dense(nodes, input_shape=(20,), activation="relu"))
         else:
-            model.add(Dense(nodes, activation=activation[i]))
+            model.add(Dense(nodes, activation="relu" if i < len(layers) - 1 else "sigmoid"))
     model.compile(optimizer=optimizer, loss= loss, metrics=['accuracy'])
     return model
 

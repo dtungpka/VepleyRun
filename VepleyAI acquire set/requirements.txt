@@ -1,0 +1,8 @@
+console_progressbar==1.1.2
+keras==2.11.0
+matplotlib==3.6.2
+mediapipe==0.8.11
+numpy==1.23.3
+opencv_python==4.6.0.66
+pywin32==304
+tqdm==4.64.1

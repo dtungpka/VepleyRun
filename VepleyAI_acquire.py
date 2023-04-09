@@ -28,7 +28,7 @@ lock = None
 HEIGHT = 480
 WIDTH = 640
 remaining_time = 0
-hands_counts = [0,0]
+
 
 class handDetector():
     def __init__(self, mode=False, maxHands=2, detectionCon=0.5, trackCon=0.5):
@@ -70,6 +70,37 @@ class handDetector():
                     cv2.circle(img, (cx, cy), 5, (255, 0, 255), cv2.FILLED)
 
         return lmList
+    def get_bouding_box(self,img,handNo=0):
+        if self.results.multi_hand_landmarks:
+            lmList = self.findPosition(img, handNo=handNo, draw=False)
+            x_min = min(lmList, key=lambda x: x[1])[1] 
+            x_max = max(lmList, key=lambda x: x[1])[1] 
+            y_min = min(lmList, key=lambda x: x[2])[2]
+            y_max = max(lmList, key=lambda x: x[2])[2] 
+            #measure the ratio between x_min, x_max, y_min, y_max and the image size, ajust the bounding box to larger according to the ratio
+            offset = 0.07
+            x_min = int(x_min - (x_max - x_min)*offset)
+            x_max = int(x_max + (x_max - x_min)*offset)
+            y_min = int(y_min - (y_max - y_min)*offset)
+            y_max = int(y_max + (y_max - y_min)*offset)
+            if x_min < 0:
+                x_min = 0
+            if x_max > WIDTH:
+                x_max = WIDTH
+            if y_min < 0:
+                y_min = 0
+            if y_max > HEIGHT:
+                y_max = HEIGHT
+
+                
+
+            return x_min, x_max, y_min, y_max
+        return 0,0,0,0
+    def draw_bouding_box(self,img,handNo=0):
+        x_min, x_max, y_min, y_max = self.get_bouding_box(img, handNo=handNo)
+        cv2.rectangle(img, (x_min , y_min), (x_max , y_max ), (0, 255, 0), 2)
+        return img
+
     def get_number_of_hands(self):
         if self.results.multi_hand_landmarks:
             return len(self.results.multi_hand_landmarks)
@@ -114,15 +145,14 @@ def main():
     cTime = 0
     cap = cv2.VideoCapture(0)
     #print the height, width of the vid
-    global HEIGHT, WIDTH,hands_counts
+    global HEIGHT, WIDTH
     HEIGHT = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     WIDTH = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     print("Height: ", HEIGHT)
     print("Width: ", WIDTH)
     detector = handDetector()
     captured_action = {}
-    current_action = 0
-    
+    current_action = 0;
     print("\nStart sampling..")
     print(f"Sampling {Actions[current_action]}\n")
     fr_count = 0
@@ -139,22 +169,26 @@ def main():
         success, img = cap.read()
         img = cv2.flip(img, 1)
         img_drawed = img.copy()
-        img_drawed = detector.findHands(img_drawed)
+        img_drawed = detector.findHands(img_drawed,draw=False)
+        
+        
         no_of_hand = detector.get_number_of_hands()
         lock.acquire()
         for i in range(no_of_hand):
-            lmList = detector.findPosition(img_drawed,i)
+            bouding_box = detector.get_bouding_box(img_drawed,i)
+            img_drawed = detector.draw_bouding_box(img_drawed,i)
+            lmList = detector.findPosition(img_drawed,i,draw=False)
             if fr_count % CAPTURE_RATE == 0 and handDetector.capturing:
                 if len(lmList) != 0:
                     if i == 0:
-                        captured_action[handDetector.ID] = {i:lmList}   
+                        d = {'landmarks':lmList, 'bouding_box':bouding_box}
+                        captured_action[handDetector.ID] = {i:d}   
                     else:
-                        captured_action[handDetector.ID][i] = lmList
+                        d = {'landmarks':lmList, 'bouding_box':bouding_box}
+                        captured_action[handDetector.ID][i] = d
                 if i == no_of_hand-1:
                     handDetector.ID += 1
                     pb.print_progress_bar(handDetector.ID % NUMBER_OF_SAMPLES)
-                
-                hands_counts[i%2] += 1
         if handDetector.ID % NUMBER_OF_SAMPLES == 0 and handDetector.capturing and (handDetector.waitID % NUMBER_OF_SAMPLES != 0):
             #save captured_action to json and clear content of var
             with open(os.path.join(Path, f'{Actions[current_action]}.json'), 'w') as outfile:
@@ -177,6 +211,7 @@ def main():
         fps = 1 / (cTime - pTime)
         pTime = cTime
         fr_count += 1
+        
         cv2.putText(img_drawed, "FPS: "+str(int(fps)), (10, 70), cv2.FONT_HERSHEY_PLAIN, 2,
                     (255, 0, 0), 3)
         if handDetector.capturing:
@@ -219,7 +254,6 @@ if __name__ == "__main__":
     detail["total"] = f_sum
     detail["height"] = HEIGHT
     detail["width"] = WIDTH
-    detail['hands'] = hands_counts
     json.dump(detail, detail_f)
     detail_f.close()
     print("\r\nThank you for your time!")
