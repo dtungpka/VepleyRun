@@ -20,7 +20,9 @@ TRAIN_VALIDATION_RATIO = 0.8
 #W: 640
 H = 480
 W = 640
+# Data set folder
 dataFiles = "D:\\2021-2022\\Research\\Dataset\\VepleyAI"
+#Processed data (Feature) location (For using train only)
 processed_folder = "Processed"
 Excluded = []
 parent_folder = True
