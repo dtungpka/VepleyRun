@@ -14,6 +14,7 @@ import datetime
 from VepleyAI_acquire import Actions
 from tkinter import filedialog
 import openpyxl
+from keras.utils import to_categorical
 TRAIN_VALIDATION_RATIO = 0.8
 #H: 480
 #W: 640
@@ -28,16 +29,8 @@ FLIP_RIGHT_HAND = True
 LEARNING_RATE = 0.0001
 ITERATIONS = 20
 #the first value is the number of features
-LAYERS = [
-#[32, 8,len(Actions)],
-#[64, 32, len(Actions)],
-#[128, 64, 32, len(Actions)],
-#[256, 128, 64, 32, len(Actions)],
-[512, 256, 128, 64, 32, len(Actions)],
-[1024, 512, 256, 128, 64, 32, len(Actions)],
-[2048, 1024, 512, 256, 128, 64, 32, len(Actions)],
-[4096, 2048, 1024, 512, 256, 128, 64, 32, len(Actions)]
-]
+LAYERS = [512, 256, 256, len(Actions)]
+
     
 ACTIVATION = [ "relu", "relu", "relu", "sigmoid"]
 PARSE_LANDMARKS_JOINTS = [    
@@ -404,9 +397,9 @@ class VepleyAiTrain():
         self.X = self.data['Train']['X']
         self.Y = self.data['Train']['Y']
         #from Y (800,) to (800,5)
-        self.Y = np.eye(len(Actions))[self.Y.astype(int)]
+        self.Y = to_categorical(self.Y.astype(int))
         self.X_val = self.data['Validation']['X']
-        self.Y_val = np.eye(len(Actions))[(self.data['Validation']['Y']).astype(int)]
+        self.Y_val = to_categorical((self.data['Validation']['Y']).astype(int))
 
         self.data['Test']['Y'] = np.eye(len(Actions))[(self.data['Test']['Y']).astype(int)]
         #print all the shape
@@ -430,22 +423,24 @@ class VepleyAiTrain():
 
         
     def train(self,layers):
-        global LAYERS, ITERATIONS, ACTIVATION
+        global ITERATIONS, ACTIVATION
+        self.save_model_details()
         if self.X is None:
             print("No data to train")
             return
         timer = time.time()
         print(f"\nTraining {layers}")
-        model = DNN.create_model(layers,ACTIVATION)
-        parameters = DNN.train_model(model,self.X,self.Y,self.X_val,self.X_val,ITERATIONS) #history
+        self.model = DNN.create_model(LAYERS,ACTIVATION)
+        self.model.summary()
+        parameters = DNN.train_model(self.model,self.X,self.Y,self.X_val,self.X_val,ITERATIONS) #history
         #print the model.summary()
-        model.summary()
+        
         print("Training time: ",time.time()-timer)
         self.model_details['Time']['Training'] = round(time.time()-timer,5)
         #parse datetime in hhmmssttddmmyy
         dt = datetime.now().strftime('%H%M%S%d%m%y')
         name = f"{parameters.history['val_accuracy'][-1]}_{dt}.VMD"
-        self.save_parameters(model,parameters,name)
+        self.save_parameters(self.model,parameters,name)
         #Write to the self.model_details
         self.model_details['Model']['Training']['Epochs'] = ITERATIONS
         train_acc = self.parameters.history['accuracy'][-1]
@@ -470,12 +465,12 @@ class VepleyAiTrain():
         m_details['Validation Loss'] = val_loss
         m_details['Time']= round(time.time()-timer,5)
         DNN.plot_model_history(parameters)
-        self.predict_random(model)
+        self.predict_random(self.model)
         self.model_details['Time']['Total'] = round(time.time()-self.start_time,5)
         print(self.model_details)
         self.model_details['Result'].append(m_details)
         self.save_model_details()
-        self.test(model,layers)
+        self.test(self.model,layers)
 
     def save_model_details(self):
         #save as json in script parent folder
@@ -547,6 +542,7 @@ def train_layers(layers,instance):
     choice = input("Do you want to train all layers? (y/n) ")
     if choice.lower() == 'y':
         for layer in layers:
+            instance._split_data()
             instance.train(layer)
     else:
         while True:
@@ -558,7 +554,9 @@ def train_layers(layers,instance):
                 if index < 0 or index >= len(layers):
                     print("Invalid index. Please enter a number between 0 and", len(layers)-1)
                     continue
+                instance._split_data()
                 instance.train(layers[index])
+
             except ValueError:
                 print("Invalid input. Please enter a number or 'q' to quit.")
 
@@ -584,7 +582,8 @@ if __name__ == "__main__":
         i = input("Press enter for debug mode or t to train: ")
         if 't' in i:
             instance.load()
-            train_layers(LAYERS, instance)
+            instance.train(LAYERS[0],)
+            #train_layers(LAYERS, instance)
         else:
             instance.read_data(dataFiles,not s, test_folders + validation_folders)
             instance.read_validation(dataFiles)

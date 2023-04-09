@@ -4,15 +4,19 @@ from keras.models import Sequential
 from keras.optimizers import Adam
 import matplotlib.pyplot as plt
 from tqdm.keras import TqdmCallback
+from keras.layers import Flatten
 
 
-def create_model(layers, activation: list,loss= 'sparse_categorical_crossentropy'  , optimizer=Adam()):
+def create_model(layers, activation: list,loss= 'categorical_crossentropy'  , optimizer=Adam()):
     model = Sequential()
     for i, nodes in enumerate(layers):
         if i == 0:
-            model.add(Dense(nodes, input_shape=(20,), activation="relu"))
+            model.add(Dense(nodes, input_shape=(20,), activation=activation[0]))
+        elif i == len(layers) - 1:
+            model.add(Flatten())
+            model.add(Dense(nodes, activation=activation[i]))
         else:
-            model.add(Dense(nodes, activation="relu" if i < len(layers) - 1 else "sigmoid"))
+            model.add(Dense(nodes, activation=activation[i]))
     model.compile(optimizer=optimizer, loss= loss, metrics=['accuracy'])
     return model
 
