@@ -21,7 +21,7 @@ TRAIN_VALIDATION_RATIO = 0.8
 H = 480
 W = 640
 dataFiles = "D:\\2021-2022\\Research\\Dataset\\VepleyAI"
-processed_folder = "D:\\2021-2022\\Research\\VepleyRunAI\\Processed"
+processed_folder = "Processed"
 Excluded = []
 parent_folder = True
 IGNORE_RIGHT_HAND = False
@@ -433,7 +433,6 @@ class VepleyAiTrain():
         self.model = DNN.create_model(LAYERS,ACTIVATION)
         self.model.summary()
         parameters = DNN.train_model(self.model,self.X,self.Y,self.X_val,self.X_val,ITERATIONS) #history
-        #print the model.summary()
         
         print("Training time: ",time.time()-timer)
         self.model_details['Time']['Training'] = round(time.time()-timer,5)
