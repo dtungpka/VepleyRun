@@ -10,7 +10,7 @@ import json
 import shutil
 from console_progressbar import ProgressBar
 import threading
-Path = input("Enter Dataset name: ")
+
 guide_path = './Guides/'
 Actions = ['Idle',
            'Pickup_item',
@@ -19,27 +19,24 @@ Actions = ['Idle',
            'Shoot'
            ]
 
-NUMBER_OF_SAMPLES = 400
+NUMBER_OF_SAMPLES = 1000
 CHANGE_POSE_EVERY = 0.2
 PAUSE_TIME = 2.0
 CAPTURE_RATE = 1 # capture every n frame
-lock = threading.Lock()
+Path = ""
+lock = None
 HEIGHT = 480
 WIDTH = 640
 remaining_time = 0
-for action in Actions:
-    if not os.path.exists(os.path.join(Path, action)):
-        os.makedirs(os.path.join(Path, action))
+
 
 class handDetector():
     def __init__(self, mode=False, maxHands=2, detectionCon=0.5, trackCon=0.5):
-        self.mode = mode
         self.maxHands = maxHands
         self.detectionCon = detectionCon
         self.trackCon = trackCon
-
         self.mpHands = mp.solutions.hands
-        self.hands = self.mpHands.Hands(static_image_mode=self.mode,
+        self.hands = self.mpHands.Hands(static_image_mode=mode,
     max_num_hands=self.maxHands,
     min_detection_confidence=self.detectionCon)
         self.mpDraw = mp.solutions.drawing_utils
@@ -73,6 +70,37 @@ class handDetector():
                     cv2.circle(img, (cx, cy), 5, (255, 0, 255), cv2.FILLED)
 
         return lmList
+    def get_bouding_box(self,img,handNo=0):
+        if self.results.multi_hand_landmarks:
+            lmList = self.findPosition(img, handNo=handNo, draw=False)
+            x_min = min(lmList, key=lambda x: x[1])[1] 
+            x_max = max(lmList, key=lambda x: x[1])[1] 
+            y_min = min(lmList, key=lambda x: x[2])[2]
+            y_max = max(lmList, key=lambda x: x[2])[2] 
+            #measure the ratio between x_min, x_max, y_min, y_max and the image size, ajust the bounding box to larger according to the ratio
+            offset = 0.07
+            x_min = int(x_min - (x_max - x_min)*offset)
+            x_max = int(x_max + (x_max - x_min)*offset)
+            y_min = int(y_min - (y_max - y_min)*offset)
+            y_max = int(y_max + (y_max - y_min)*offset)
+            if x_min < 0:
+                x_min = 0
+            if x_max > WIDTH:
+                x_max = WIDTH
+            if y_min < 0:
+                y_min = 0
+            if y_max > HEIGHT:
+                y_max = HEIGHT
+
+                
+
+            return x_min, x_max, y_min, y_max
+        return 0,0,0,0
+    def draw_bouding_box(self,img,handNo=0):
+        x_min, x_max, y_min, y_max = self.get_bouding_box(img, handNo=handNo)
+        cv2.rectangle(img, (x_min , y_min), (x_max , y_max ), (0, 255, 0), 2)
+        return img
+
     def get_number_of_hands(self):
         if self.results.multi_hand_landmarks:
             return len(self.results.multi_hand_landmarks)
@@ -141,18 +169,24 @@ def main():
         success, img = cap.read()
         img = cv2.flip(img, 1)
         img_drawed = img.copy()
-        img_drawed = detector.findHands(img_drawed)
-        no_hand = detector.get_number_of_hands()
+        img_drawed = detector.findHands(img_drawed,draw=False)
+        
+        
+        no_of_hand = detector.get_number_of_hands()
         lock.acquire()
-        for i in range(no_hand):
-            lmList = detector.findPosition(img_drawed,i)
+        for i in range(no_of_hand):
+            bouding_box = detector.get_bouding_box(img_drawed,i)
+            img_drawed = detector.draw_bouding_box(img_drawed,i)
+            lmList = detector.findPosition(img_drawed,i,draw=False)
             if fr_count % CAPTURE_RATE == 0 and handDetector.capturing:
                 if len(lmList) != 0:
                     if i == 0:
-                        captured_action[handDetector.ID] = {i:lmList}   
+                        d = {'landmarks':lmList, 'bouding_box':bouding_box}
+                        captured_action[handDetector.ID] = {i:d}   
                     else:
-                        captured_action[handDetector.ID][i] = lmList
-                if i == no_hand-1:
+                        d = {'landmarks':lmList, 'bouding_box':bouding_box}
+                        captured_action[handDetector.ID][i] = d
+                if i == no_of_hand-1:
                     handDetector.ID += 1
                     pb.print_progress_bar(handDetector.ID % NUMBER_OF_SAMPLES)
         if handDetector.ID % NUMBER_OF_SAMPLES == 0 and handDetector.capturing and (handDetector.waitID % NUMBER_OF_SAMPLES != 0):
@@ -177,6 +211,7 @@ def main():
         fps = 1 / (cTime - pTime)
         pTime = cTime
         fr_count += 1
+        
         cv2.putText(img_drawed, "FPS: "+str(int(fps)), (10, 70), cv2.FONT_HERSHEY_PLAIN, 2,
                     (255, 0, 0), 3)
         if handDetector.capturing:
@@ -198,6 +233,11 @@ def main():
         cv2.waitKey(1)
         
 if __name__ == "__main__":
+    lock = threading.Lock()
+    Path = input("Enter Dataset name: ")
+    for action in Actions:
+        if not os.path.exists(os.path.join(Path, action)):
+            os.makedirs(os.path.join(Path, action))
     with open(guide_path+'guide.txt','r') as f:
         print(f.read())
         input('\nEnter to continue..')

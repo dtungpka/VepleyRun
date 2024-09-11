@@ -17,7 +17,7 @@ FingerImages_set1/
 env/
 # Mono auto generated files
 mono_crash.*
-
+Dataset*
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
@@ -25,6 +25,8 @@ mono_crash.*
 [Rr]eleases/
 x64/
 x86/
+build/
+dist/
 [Ww][Ii][Nn]32/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
@@ -363,3 +365,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+*.VAID
+*.rar
